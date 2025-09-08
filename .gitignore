@@ -1,0 +1,16 @@
+# Local Terraform directories
+.terraform/
+
+# Local Terraform state files
+*.tfstate
+*.tfstate.backup
+
+# Crash log files
+crash.log
+
+# Exclude personal variable files
+*.tfvars
+*.tfvars.json
+
+# Ignore system files
+.DS_Store

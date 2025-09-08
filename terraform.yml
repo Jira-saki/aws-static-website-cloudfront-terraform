@@ -1,0 +1,61 @@
+name: 'Infrastructure and Website CI/CD'
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  # Job 1: Deploy Infrastructure with Terraform
+  deploy-infrastructure:
+    name: 'Deploy Terraform'
+    runs-on: ubuntu-latest
+# This condition checks if any .tf files were changed
+    if: "contains(github.event.head_commit.message, 'terraform') || contains(github.event.head_commit.message, 'all')"
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+# ADDED: This step is required for Terraform to authenticate
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1 # us-east-1 is common for Terraform global resources
+
+      # ADDED: Include all the necessary terraform steps
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan
+        run: terraform plan
+        
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+
+  # Job 2: Deploy the Website Content to S3
+  deploy-website:
+    name: 'Deploy Website'
+    runs-on: ubuntu-latest
+    # This condition checks if any files inside the 'src' folder were changed
+    if: "contains(github.event.head_commit.message, 'website') || contains(github.event.head_commit.message, 'all')"
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-3  #Use the region of your S3 bucket
+
+
+      - name: Deploy static site to S3 bucket
+        run: aws s3 sync ./src s3://jira-static-site-proj --delete
